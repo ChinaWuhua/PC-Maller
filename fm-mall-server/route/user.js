@@ -6,7 +6,8 @@ const nodemailer = require('../mailer/validateCode');
 
 // 生成验证码
 function createCode () {
-  return toString(Math.random()).substr(2,6)
+  const str = `${Math.random()}`
+  return str.substr(2,6)
 }
 
 // 禁用账号

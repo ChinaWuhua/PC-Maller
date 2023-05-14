@@ -5,8 +5,8 @@ let transporter = nodemailer.createTransport({
   host: 'smtp.163.com',
   secure: true,
   auth: {
-      user: 'example@163.com',
-      pass: 'example'
+    user: 'example@163.com',
+    pass: 'example'
   }
 
   // service: 'qq', //类型qq邮箱
@@ -29,8 +29,8 @@ module.exports = function (email, data, customerName, orderID, date) {
     const amount = (item.tradePrice * item.count).toFixed(2)
     tableData += `
       <tr>
-        <td rowspan="${data.length}">${orderID}</td>
-        <td rowspan="${data.length}">${customerName}</td>
+        <td>${orderID}</td>
+        <td>${customerName}</td>
         <td>${item.tradeName}</td>
         <td>$ ${amount}</td>
         <td>${date}</td>

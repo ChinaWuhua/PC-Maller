@@ -79,7 +79,7 @@ const Export = () => {
     keyword: input.value
   }
   loading.value = true
-  request.post('/api/exportOrderList', params).then(res => {
+  request.post('/api/customer/exportOrderList', params).then(res => {
     loading.value = false
     if (res?.data?.statu === 'success') {
       console.log('export data: ', res.data.data)

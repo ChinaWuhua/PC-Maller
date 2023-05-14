@@ -8,6 +8,7 @@ const upload = multer({ storage: multer.memoryStorage() }) // 上传文件使用
 const imageUpload = require('../image/imageUpload');
 const path = require('path')
 const moment = require('moment')
+const fs = require('fs')
 
 // 产品图片上传
 router.post('/uploadImage', (req, res) => {
@@ -15,9 +16,10 @@ router.post('/uploadImage', (req, res) => {
     // 上传成功 存储文件路径 到数据库中
     Pictrue_BIND_Goods(res, imgsrc, req.body.id);
   }).catch(err => {
-    const response = Object.assign(responseFail);
-    response.data = err;
-    res.send(response)
+    res.send({
+      ...responseFail,
+      data: err
+    })
   })
 })
 // 图片上传后即时绑定对应商品
@@ -53,19 +55,19 @@ router.post('/create', async (req, res) => {
   const creatTime = moment().format('YYYY-MM-DD HH:mm');
   const sql = `INSERT INTO goods(tradeName,tradePictrue,tradePrice,tradeStock,description,statu,createorName,creatorID,id,tradeCreateTime,tradeSold) VALUES('${data?.tradeName}', '${data?.tradePictrue}', ${data.tradePrice}, ${data.tradeStock}, '${data.description}', '${data.statu}', '${data.createorName}', '${data.creatorID}','${id}','${creatTime}',0)`
   const check = await db_async(sql).then(res => res).catch((err) => err)
-  res.send(check)
+  res.send({...check, id})
 });
 // 批量新增商品
 const formatData = (item, createorName, creatorID) => {
   const id = uuid.v4();
   const creatTime = moment().format('YYYY-MM-DD HH:mm');
-  return `('${item.tradeName}',${item.tradePrice},'${creatTime}','${createorName}','${item.tradeStock}','${item.description}','false','${id}','${creatorID}')`
+  return `('${item.tradeName || ''}',${item.tradePrice || ''},'${creatTime || ''}','${createorName || ''}','${item.tradeStock || 0}','${item.description || ''}','false','${id}','${creatorID || ''}',0)`
 }
 router.post('/batchImport', async (req, res) => {
   const data = req.body
   const createorName = data.createorName
   const creatorID = data.creatorID
-  let sql = `INSERT INTO goods(tradeName,tradePrice,tradeCreateTime,createorName,tradeStock,description,statu,id,creatorID) values `
+  let sql = `INSERT INTO goods(tradeName,tradePrice,tradeCreateTime,createorName,tradeStock,description,statu,id,creatorID,tradeSold) values `
   let values = '';
   data.data.forEach(item => {
     const val = formatData(item, createorName, creatorID)
@@ -77,9 +79,23 @@ router.post('/batchImport', async (req, res) => {
 // 更新商品
 router.post('/modify', async (req, res) => {
   const data = req.body
+  if (data?.oldImage) {
+    try {
+      const paths = path.join(__dirname,'../medias/goodsPictrue/' + data?.oldImage);
+      fs.unlink(paths, (err) => {
+        if (err) {
+          console.log('error: ', err)
+        } else {
+          console.log('done')
+        }
+      })
+    } catch (err) {
+      console.log('err: ', err)
+    }
+  }
   const sql = `UPDATE goods SET tradeName='${data.tradeName}',tradePictrue='${data.tradePictrue}',tradePrice=${data.tradePrice},tradeStock=${data.tradeStock},description='${data.description}',statu='${data.statu}' WHERE id='${data.id}'`
   const check = await db_async(sql).then(res => res).catch((err) => err)
-  res.send(check)
+  res.send({...check, id: data.id})
 });
 // 批量导入商品
 router.post('/import', upload.any(), (req, res) => {

@@ -213,10 +213,10 @@ onMounted(() => {
       height: 200px;
       background: #efefef;
       margin-right: 20px;
-      img {
-        width: 100%;
-        height: 100%;
-      }
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
     }
     .info {
       flex: 1;

@@ -9,19 +9,17 @@
       </el-form-item>
       <el-form-item label="Pictrue">
         <div>
-          <el-upload
-            ref="uploadRef"
-            class="upload-demo"
-            action="/api/business/uploadImage"
-            :show-file-list="false"
-            :auto-upload="true"
-            :data="params"
-            @success="success"
-          >
-            <el-button>Upload</el-button>
-          </el-upload>
-          <div v-if="src !== ''">
-            <img class="previewPic" :src="imagePre + src" alt="product pictrue">
+          <el-button class="upload-btn">
+            <input type="file" ref="file" @change="chosePic" />
+            Upload
+          </el-button>
+          <div>
+            <template v-if="src_preview">
+              <img class="previewPic" :src="src_preview" alt="preview">
+            </template>
+            <template v-else-if="src">
+              <img class="previewPic" :src="imagePre + src" alt="pictrue">
+            </template>
           </div>
         </div>
       </el-form-item>
@@ -55,14 +53,15 @@ import { ElMessage } from 'element-plus'
 const { proxy } = getCurrentInstance();
 const str = sessionStorage.getItem('modifyData')
 const obj = JSON.parse(str)
-const params = {
-  id: obj?.id || ''
-}
+// const params = {
+//   id: obj?.id || ''
+// }
 const request = inject('request')
 const router = useRouter()
 const store = useStore()
 const loading = ref(false)
 const src = ref('')
+const src_preview = ref('')
 const imagePre = proxy.$imagePre
 const tradePrice = (rule, value, callback) => {
   if (!(/^\d+(\.\d{1,2})?$/).test(value)) {
@@ -79,6 +78,7 @@ const tradeStock = (rule, value, callback) => {
   }
 }
 const ruleFormRef = ref(null)
+const file = ref(null)
 const rules = reactive({
   tradePrice: [
     { validator: tradePrice, trigger: 'blur' }
@@ -95,6 +95,14 @@ const form = reactive({
   statu: 'off',
   description: ''
 })
+const chosePic = () => {
+  console.log('file.value.files: ', file.value.files)
+  const fr = new FileReader()
+  fr.readAsDataURL(file.value.files[0]) // 传入文件对象开始读
+  fr.onload = (e) => {
+    src_preview.value = e.target.result
+  }
+}
 const handleSave = () => {
   const mode = router.currentRoute.value.query.mode || 'add'
   if (mode === 'add') {
@@ -103,7 +111,25 @@ const handleSave = () => {
     modify(form)
   }
 }
-const create = (form) => {
+const bindPictrue = async (id) => {
+  const formdata = new FormData();
+  formdata.append('file', file.value.files[0])
+  formdata.append('id', id)
+
+  const res = await request.post('/api/business/uploadImage', formdata, {
+    headers: {'Content-Type' : 'multipart/form-data'}
+  }).then(res => res).catch(err => err)
+  loading.value = false
+  if (res.data.statu === 'success') {
+    router.replace('/business/list')
+  } else {
+    ElMessage({
+      message: res.data,
+      type: 'warning',
+    })
+  }
+}
+const create = async (form) => {
   const params = {
     ...form,
     createorName: store.state.user.userinfo?.username,
@@ -112,24 +138,28 @@ const create = (form) => {
     tradeStock: form.tradeStock * 1
   }
   loading.value = true
-  request.post('/api/business/create', params).then(res => {
-    loading.value = false
-    if (res?.data?.statu === 'success') {
-      ElMessage({
-        message: 'Success',
-        type: 'success',
-      })
-      router.replace('/business/list')
+  const res = await request.post('/api/business/create', params).then(res => res).catch(err => err)
+  if (res?.data?.statu === 'success') {
+    ElMessage({
+      message: 'Success',
+      type: 'success',
+    })
+    if (file.value.files.length > 0) {
+      // 上传并绑定图片
+      bindPictrue(res.data.id)
+      return
     }
-  }).catch(err => {
+    loading.value = false
+    router.replace('/business/list')
+  } else {
     loading.value = false
     ElMessage({
-      message: err.data,
+      message: res.data,
       type: 'warning',
     })
-  })
+  }
 }
-const modify = (form) => {
+const modify = async (form) => {
   const params = {
     ...form,
     createorName: obj?.username,
@@ -139,30 +169,24 @@ const modify = (form) => {
     id: obj?.id
   }
   loading.value = true
-  request.post('/api/business/modify', params).then(res => {
+  if (file.value.files.length > 0) {
+    params.oldImage = obj.image
+    // 更新
+    bindPictrue(obj?.id)
+  }
+  const res = await request.post('/api/business/modify', params).then(res => res).catch(err => err)
+  if (res?.data?.statu === 'success') {
     loading.value = false
-    if (res?.data?.statu === 'success') {
-      ElMessage({
-        message: 'Success',
-        type: 'success',
-      })
-      router.replace('/business/list')
-    }
-  }).catch(err => {
-    loading.value = false
+    router.replace('/business/list')
+  } else {
     ElMessage({
-      message: err.data,
-      type: 'warn',
+      message: res.data,
+      type: 'warning',
     })
-  })
+  }
 }
 const Cancel = () => {
   router.go(-1)
-}
-
-const success = res => {
-  // console.log('图片上传结果: ', res)
-  src.value = res?.data
 }
 
 onMounted(() => {
@@ -189,6 +213,21 @@ onBeforeUnmount(() => {
   margin: 50px auto;
 }
 .previewPic {
-  max-width: 200px;
+  max-width: 300px;
+  margin-top: 20px;
+}
+.upload-btn {
+  position: relative;
+  overflow: hidden;
+  input {
+    position: absolute;
+    z-index: 1;
+    opacity: 0;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+  }
 }
 </style>

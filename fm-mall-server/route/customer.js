@@ -8,7 +8,7 @@ const moment = require('moment')
 router.post('/products', async (req, res) => {
   const data = req.body // 查询条件
   const condition = data.keyword ? ` and tradeName like '%${data.keyword}%'` : ''
-  const sql = `select * from goods where statu='true' ${condition} order by tradePrice desc`
+  const sql = `select * from goods where statu='true' ${condition} order by tradePrice asc`
   const check = await db_async(sql).then(res => res).catch((err) => err)
   res.send(check)
 });
@@ -30,7 +30,10 @@ router.post('/removewish', async (req, res) => {
   const data = req.body // 查询条件
   const sql = `delete from goods_wish where id='${data.productID}' and ownerID='${data.ownerID}'`
   const check = await db_async(sql).then(res => res).catch((err) => err)
-  res.send(check)
+  res.send({...
+    check,
+    data: 'Done !'
+  })
 });
 // 查询心愿单
 router.post('/querywish', async (req, res) => {

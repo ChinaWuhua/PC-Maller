@@ -29,10 +29,10 @@ export default {
     });
 
   },
-  post: function (url, data) {
+  post: function (url, data, headers) {
     return new Promise((resolve) => {
       request.post(url, data, {
-          headers: {
+          headers: headers || {
             "Content-Type": "application/json",
           },
         })

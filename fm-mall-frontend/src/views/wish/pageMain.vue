@@ -149,12 +149,12 @@ onMounted(() => {
   }
   .product-image {
     font-size: 0;
-    height: 120px;
+    height: 160px;
     background: #f0f0f0;
-    img {
-      width: 100%;
-      height: 100%;
-    }
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
   }
   .product-name {
     font-size: 20px;
